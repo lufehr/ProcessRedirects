@@ -30,7 +30,7 @@ class ProcessRedirects extends Process {
 		$table->setEncodeEntities(false);
 		$table->headerRow(array('Redirect From', 'Redirect To', 'Hits', 'Delete'));
 
-		$result = $this->db->query("SELECT * FROM {$this->className} ORDER BY redirect_from");
+		$result = $this->db->query("SELECT * FROM {$this->_getLowerCaseClassName()} ORDER BY redirect_from");
 
 		while($row = $result->fetch_assoc()) {
 
@@ -69,7 +69,7 @@ class ProcessRedirects extends Process {
 
 		if($id > 0) {
 			// edit existing record
-			$result = $this->db->query("SELECT id, redirect_from, redirect_to FROM {$this->className} WHERE id=$id");
+			$result = $this->db->query("SELECT id, redirect_from, redirect_to FROM {$this->_getLowerCaseClassName()} WHERE id=$id");
 			list($id, $from, $to) = $result->fetch_array();
 			$to = $this->_makeRedirectToURL($to); 
 			$this->setFuel('processHeadline', "Edit Redirect");
@@ -233,7 +233,7 @@ _END;
 
 		foreach($this->input->post->delete as $id) {
 			$id = (int) $id;
-			$this->db->query("DELETE FROM {$this->className} WHERE id=$id");
+			$this->db->query("DELETE FROM {$this->_getLowerCaseClassName()} WHERE id=$id");
 			$count++;
 		}
 
@@ -257,17 +257,21 @@ _END;
 		$url2 = $this->db->escape_string($url . '/');
 
 		// now see if it's in the DB
-		$sql = "SELECT id, redirect_to FROM {$this->className} WHERE redirect_from='$url' OR redirect_from='$url2'";
+		$sql = "SELECT id, redirect_to FROM {$this->_getLowerCaseClassName()} WHERE redirect_from='$url' OR redirect_from='$url2'";
 		$result = $this->db->query($sql);
 
 		// if there is a match, then redirect to it
 		if($result->num_rows) {
 			list($id, $redirect_to) = $result->fetch_array();
 			$redirect_to = $this->_makeRedirectToURL($redirect_to, true); 
-			$sql = "UPDATE {$this->className} SET counter = counter +1 WHERE id = $id";
+			$sql = "UPDATE {$this->_getLowerCaseClassName()} SET counter = counter +1 WHERE id = $id";
 			$this->db->query($sql);
 			$this->session->redirect($redirect_to);
 		}
+	}
+
+	private function _getLowerCaseClassName() {
+		return strtolower($this->className);
 	}
 
 	private function _makeRedirectToURL($to, $http = false) {
@@ -294,9 +298,9 @@ _END;
 		$to = $this->db->escape_string($to);
 
 		if ($id == 0) {
-			$sql = "INSERT INTO {$this->className} SET redirect_from = '$from', redirect_to = '$to' ON DUPLICATE KEY UPDATE id = id;";
+			$sql = "INSERT INTO {$this->_getLowerCaseClassName()} SET redirect_from = '$from', redirect_to = '$to' ON DUPLICATE KEY UPDATE id = id;";
 		} else {
-			$sql = "UPDATE {$this->className} SET redirect_from = '$from', redirect_to = '$to' WHERE id = $id";
+			$sql = "UPDATE {$this->_getLowerCaseClassName()} SET redirect_from = '$from', redirect_to = '$to' WHERE id = $id";
 		}
 		return $this->db->query($sql);
 	}
@@ -323,7 +327,7 @@ _END;
 
 		$sql = <<< _END
 
-		CREATE TABLE {$this->className} (
+		CREATE TABLE {$this->_getLowerCaseClassName()} (
 			id int unsigned NOT NULL auto_increment,
 			counter int unsigned DEFAULT 0,
 			redirect_from varchar(255) NOT NULL DEFAULT '',
@@ -341,6 +345,6 @@ _END;
 	public function ___uninstall() {
 		$p = $this->pages->get('template=admin, name=redirects');
 		$p->delete();
-		$this->db->query("DROP TABLE {$this->className}");
+		$this->db->query("DROP TABLE {$this->_getLowerCaseClassName()}");
 	}
 }
